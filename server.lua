@@ -16,7 +16,7 @@ local function getEvents() --Recieve and process all events
     if event.type == 'connect' then
       table.insert(server.clients,event.peer) --Add client
       send({type='setObjects',objects=game.objects},event.peer) --Send current objects to new client
-      game.addObject({pos=Vec()})--Add new player object
+      game.addObject({pos=Vec(),player=true,clientID=#server.clients})--Add new player object
       send({type='setID',id=#game.objects},event.peer) --Send the client's unique player id
       print('Server: ',event.peer, ' connected')
     end

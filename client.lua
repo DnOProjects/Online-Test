@@ -21,9 +21,8 @@ local function processOrder(order) --orders are recieved from the server and eac
     end
     client.objects = order.objects
   end
-  if orderType=='addObject' then
-    client.objects[#client.objects+1] = classifyObject(order.object)
-  end
+  if orderType=='addObject' then client.objects[#client.objects+1] = classifyObject(order.object) end
+  if orderType=='removeObject' then client.objects[order.id].trash = true end
   if orderType=='moveObj' then client.objects[order.id].pos = client.objects[order.id].pos+VecTab(order.vec) end
 end
 local function request(requestType,data)
@@ -71,14 +70,14 @@ end
 function client.draw()
   for i,obj in ipairs(client.objects) do
     if obj.vel then love.graphics.setColor(1, 0, 0) end
-    love.graphics.circle('fill',obj.pos.x,obj.pos.y,10)
+    if not obj.trash then love.graphics.circle('fill',obj.pos.x,obj.pos.y,10) end
     love.graphics.setColor(1, 1, 1)
   end
 end
 function client.mousepressed(pos,button)
   if button==1 then
     local vel = (pos-player.pos):normalise()*10
-    request('addObject',{object={vel=vel,pos=player.pos}})
+    request('addObject',{object={vel=vel,pos=player.pos,ownerID=player.id,bullet=true}})
   end
 end
 
