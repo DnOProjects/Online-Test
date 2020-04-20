@@ -19,7 +19,7 @@ end
 function VecMouse() return Vec(love.mouse.getX(),love.mouse.getY()) end
 function VecSize(object) return Vec(object:getWidth(),object:getHeight()) end
 function VecWin() return VecSize(love.graphics) end
-function VecTab(table) return Vec(table.x,table.y) end
+function ConstructVec(args) return Vec(args.x,args.y) end 
 Cardinals = {Vec(0,1),Vec(1,0),Vec(-1,0),Vec(0,-1)}
 
 function Vector:print() print('x: '..self.x..', y: '..self.y) end

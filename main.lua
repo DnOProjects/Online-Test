@@ -1,16 +1,18 @@
 --Global classes
 require 'class'
 require 'vector'
+Constructors = {vector = ConstructVec}
 --Global modules
-debug, enet, bitser = require 'debugger', require 'enet', require 'bitser'
+debug, enet, bitser, utils = require 'debugger', require 'enet', require 'bitser', require 'utils'
 client, server = require 'client', require 'server'
 
 local host = false --True: runs a server and a client; False: runs just a client
-local ip = '92.62.10.253'
+local ip = 'localhost'--'92.62.10.253'
+local port = '25565'
 
 function love.load()
-  if host then server.start('*'..':25565') end
-  client.connect(ip..':25565')
+  if host then server.start('*:'..port) end
+  client.connect(ip..':'..port)
 end
 
 function love.update(dt)
@@ -22,8 +24,4 @@ end
 function love.draw()
   client.draw() --Draws the game from the client's incomplete store of game objects
   debug.draw()
-end
-
-function love.mousepressed(x,y,button)
-  client.mousepressed(Vec(x,y),button)
 end

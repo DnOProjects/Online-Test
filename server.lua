@@ -1,67 +1,72 @@
-local game = require 'game'
+local  objMan, net, logic = require 'objectManager', require 'net', require 'logic'
 
 local server = {
-  host=nil, --host object (self) bound to an address
-  clients={} --to store the clients when they connect
+  nodeType='Server',
+  host=nil --host object (self) bound to an address
 }
-local orders = nil
-local function send(data,client) client:send(bitser.dumps(data)) end
-local function broadcast() --Called after main game update, sends orders to all clients
-  local serialisedOrders = bitser.dumps(orders)
-  for i=1,#server.clients do server.clients[i]:send(serialisedOrders) end
-end
-local function getEvents() --Recieve and process all events
-  local event = server.host:service()
-  while event do
-    if event.type == 'connect' then
-      table.insert(server.clients,event.peer) --Add client
-      send({type='setObjects',objects=game.objects},event.peer) --Send current objects to new client
-      game.addObject({pos=Vec(),player=true,clientID=#server.clients})--Add new player object
-      send({type='setID',id=#game.objects},event.peer) --Send the client's unique player id
-      print('Server: ',event.peer, ' connected')
-    end
-    if event.type == 'disconnect' then
-      --todo: remove from clients list
-      print('Server: ',event.peer, ' disconnected')
-    end
-    if event.type == 'receive' then
-      local data = bitser.loads(event.data)
-      local requestType = data.type
-      if requestType=='addObject' then
-        local object = data.object
-        for k,v in pairs(object) do
-          if type(v)=="table" then object[k] = VecTab(v) end
-        end
-        game.addObject(object)
-      end
-      if requestType=='moveObj' then
-        game.objects[data.id].pos = game.objects[data.id].pos+VecTab(data.vec)
-        server.order(requestType,data)
-      end
-    end
-    event = server.host:service() --get new event (nil if there are no new events)
+local clients = {} --to store the clients when they connect
+local objects = {}
+local function requestAddObj(object,clientID) --requests all if client == nil
+  if not object.data.internal then --don't transfer the object if not used by client
+    local dataCopy = utils.copy(object.data)
+    object.data = nil --nullify object data to avoid sending unnessesary details
+    server.request({object=object},"addObj",clientID)
+    object.data = dataCopy --restore data to the object
   end
 end
 
 function server.start(address)
   server.host = enet.host_create(address)
-  if server.host then print('Server: ','Started server at ',address)
-  else print('Server: ','//COULD NOT START//') end
-end
-function server.order(orderType,data) --Called several times during main game update
-  local data = data or {}
-  data.type = orderType
-  table.insert(orders,data)
+  if server.host then print('Server: started at '..address) end
 end
 function server.update(dt) --Called before main game updates
-  --Server logs
-  debug.log('#Game Objects',#game.objects)
-  debug.log('#Clients',#server.clients)
+  objMan.bind(objects)
+  net.getEvents(server) --get events triggered by clients and call the appropriate handler method
+  logic.update(dt,objects) --process game logic and send requests based from resultant state changes
+  objMan.unbind()
+end
+function server.request(request,requestType,clientID)
+  if requestType then request.type = requestType end
+  local serialisedRequest = bitser.dumps(request)
+  if clientID then  clients[clientID]:send(serialisedRequest) --send to one client
+  else --send to all clients
+    for i=1,#clients do clients[i]:send(serialisedRequest) end
+  end
+end
 
-  orders = {type="multi"} --clear orders
-  getEvents() --get and process events and packets sent by clients and send orders
-  game.update(dt) --process game logic and send orders
-  broadcast() --send accumulated orders to all clients
+--Handler functions
+function server.handleRequest(client,request)
+  if request.type=='createObj' then logic.createObject(request.objectType,request)
+  elseif request.type=='moveObj' then server.moveObject(request.id,request.vec) end
+end
+function server.handleConnect(client)
+  --Add client
+  local clientID = #clients+1 --Defaults to expanding the list
+  for i=1,#clients do --Search for removed (trash) objects to overwrite
+    if clients[i].trash then
+      clientID = i
+      break
+    end
+  end
+  clients[clientID] = client
+
+  for i,object in ipairs(objects) do requestAddObj(object,clientID) end   --Send all current objects to new client
+  local player = logic.createObject('player',{clientID=clientID}) --Add new player object
+  server.request({id=player.id},'setPlayerID',clientID) --Send the client their player's id
+end
+function server.handleDisconnect(client)
+  --todo: remove from clients list
+end
+
+--Functions to change internal game state and possibly update the draw state of clients
+function server.addObject(object)
+  objMan.addObject(object)
+  requestAddObj(object)
+  return object
+end
+function server.moveObject(id,vec)
+  objects[id].pos = objects[id].pos + vec
+  server.request({vec=vec,id=id},'moveObj')
 end
 
 return server

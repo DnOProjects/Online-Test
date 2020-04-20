@@ -12,7 +12,7 @@ Returns args or {}, with metatable set to {__index = self} where self is the par
       for k,v in pairs(args.meta) do metatable[k] = v end
     end
     setmetatable(new,metatable)
-    new.type = self.type..'/'..type
+    new.type = type
     return new --WARNING: changing an inherited table by index alters it for parent and all children
 end						--So be super carefull when having classes contain tables
 function Class:obj(args)
@@ -23,5 +23,6 @@ function Class:obj(args)
   end
   setmetatable(new,metatable)
   new.new, new.obj = nil,nil --removes capapility to make new classes
+  new.class = new.type --so type access does not use metatables thus can be serialised
   return new
 end
