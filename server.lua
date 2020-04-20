@@ -26,9 +26,18 @@ local function getEvents() --Recieve and process all events
     end
     if event.type == 'receive' then
       local data = bitser.loads(event.data)
-      local type = data.type
-      if type=='moveObj' then game.objects[data.id].pos = game.objects[data.id].pos+VecTab(data.vec) end
-      server.order(type,data) --for now just send order all clients a copy but todo: internal state
+      local requestType = data.type
+      if requestType=='addObject' then
+        local object = data.object
+        for k,v in pairs(object) do
+          if type(v)=="table" then object[k] = VecTab(v) end
+        end
+        game.addObject(object)
+      end
+      if requestType=='moveObj' then
+        game.objects[data.id].pos = game.objects[data.id].pos+VecTab(data.vec)
+        server.order(requestType,data)
+      end
     end
     event = server.host:service() --get new event (nil if there are no new events)
   end
@@ -39,9 +48,9 @@ function server.start(address)
   if server.host then print('Server: ','Started server at ',address)
   else print('Server: ','//COULD NOT START//') end
 end
-function server.order(type,data) --Called several times during main game update
+function server.order(orderType,data) --Called several times during main game update
   local data = data or {}
-  data.type = type
+  data.type = orderType
   table.insert(orders,data)
 end
 function server.update(dt) --Called before main game updates

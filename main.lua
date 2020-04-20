@@ -5,12 +5,12 @@ require 'vector'
 debug, enet, bitser = require 'debugger', require 'enet', require 'bitser'
 client, server = require 'client', require 'server'
 
-local host = true --True: runs a server and a client; False: runs just a client
-local ip = '192.168.0.4'
+local host = false --True: runs a server and a client; False: runs just a client
+local ip = '92.62.10.253'
 
 function love.load()
-  if host then server.start(ip..':6789') end
-  client.connect(ip..':6789')
+  if host then server.start('*'..':25565') end
+  client.connect(ip..':25565')
 end
 
 function love.update(dt)
@@ -22,4 +22,8 @@ end
 function love.draw()
   client.draw() --Draws the game from the client's incomplete store of game objects
   debug.draw()
+end
+
+function love.mousepressed(x,y,button)
+  client.mousepressed(Vec(x,y),button)
 end

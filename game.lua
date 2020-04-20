@@ -6,7 +6,7 @@ function game.addObject(object)
   server.order('addObject',{object=object})
 end
 function game.update(dt)
-
+  --for i, object in ipairs(o)
 end
 
 return game
