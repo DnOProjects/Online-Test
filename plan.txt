@@ -7,5 +7,6 @@ Localhost testing:
 TODO:
   1:
   2:
+    - reduce stutter by replacing many small moves w/ 1 big move
   3:
     - provide instant feedback on input
