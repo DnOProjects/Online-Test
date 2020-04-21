@@ -2,7 +2,10 @@ local net = {}
 
 local function reconstruct(x) --restores classes
   if type(x) == 'table' then
-      if x.class then return Constructors[x.class](x) end
+      if x.class then
+        if Constructors[x.class] then return Constructors[x.class](x)
+        else return nil end
+      end
       for k, v in pairs(x) do x[k] = reconstruct(v) end
   end
   return x
