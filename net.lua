@@ -12,8 +12,8 @@ function net.getEvents(node) --Recieve all events in order of sending and pass t
   local event = node.host:service()
   while event do
     if event.type == 'receive' then
-      local request = reconstruct(bitser.loads(event.data))
-      node.handleRequest(peer,request)
+      local requests = reconstruct(bitser.loads(event.data))
+      for i,request in ipairs(requests) do node.handleRequest(peer,request) end
     else
       print(node.nodeType..': recieved '..event.type..' event from '..tostring(event.peer)) --Receive events do not print to avoid spam
       if event.type == 'connect' and node.handleConnect then node.handleConnect(event.peer) end

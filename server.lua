@@ -2,10 +2,17 @@ local  objMan, net, logic = require 'objectManager', require 'net', require 'log
 
 local server = {
   nodeType='Server',
-  host=nil --host object (self) bound to an address
+  host=nil, --host object (self) bound to an address
 }
 local clients = {} --to store the clients when they connect
+local clientRequests = {} --to store accumulated requests for each client
 local objects = {}
+
+local function broadcast() --send all accumulated requests
+  for i, requests in ipairs(clientRequests) do
+    if #requests>0 then clients[i]:send(bitser.dumps(requests)) end
+  end
+end
 local function requestAddObj(object,clientID) --requests all if client == nil
   if not object.data.internal then --don't transfer the object if not used by client
     local dataCopy = utils.copy(object.data)
@@ -21,16 +28,19 @@ function server.start(address)
 end
 function server.update(dt) --Called before main game updates
   objMan.bind(objects)
+  for i=1,#clientRequests do clientRequests[i] = {} end --clear requests
   net.getEvents(server) --get events triggered by clients and call the appropriate handler method
   logic.update(dt,objects) --process game logic and send requests based from resultant state changes
+  objMan.clearTrash()
+  broadcast()
+  debug.logServer(objects,server)
   objMan.unbind()
 end
 function server.request(request,requestType,clientID)
   if requestType then request.type = requestType end
-  local serialisedRequest = bitser.dumps(request)
-  if clientID then  clients[clientID]:send(serialisedRequest) --send to one client
+  if clientID then table.insert(clientRequests[clientID],request) --send to one client
   else --send to all clients
-    for i=1,#clients do clients[i]:send(serialisedRequest) end
+    for i,requests in ipairs(clientRequests) do table.insert(requests,request) end
   end
 end
 
@@ -48,6 +58,7 @@ function server.handleConnect(client)
       break
     end
   end
+  clientRequests[clientID] = {}
   clients[clientID] = client
 
   for i,object in ipairs(objects) do requestAddObj(object,clientID) end   --Send all current objects to new client
@@ -64,9 +75,17 @@ function server.addObject(object)
   requestAddObj(object)
   return object
 end
+function server.removeObject(id)
+  if objects[id] then
+    objMan.removeObject(id)
+    server.request({id=id},'removeObj')
+  end
+end
 function server.moveObject(id,vec)
-  objects[id].pos = objects[id].pos + vec
-  server.request({vec=vec,id=id},'moveObj')
+  if objects[id] then
+    objects[id].pos = objects[id].pos + vec
+    server.request({vec=vec,id=id},'moveObj')
+  end
 end
 
 return server

@@ -14,5 +14,12 @@ function objMan.addObject(object)
   end
   objects[object.id] = object
 end
+function objMan.removeObject(id) objects[id].trash = true end
+function objMan.clearTrash()
+  for i=#objects,1,-1 do
+    if objects[i].trash then table.remove(objects,i)
+    else break end
+  end
+end
 
 return objMan

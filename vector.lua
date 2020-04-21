@@ -8,7 +8,7 @@ local Vector = Class:new('vector',{x=0,y=0,meta={
 		else error('Vectors can only be multiplied by numbers') end
 	end,
 	__div=function(a,b) return a*(1/b) end,
-	__concat=function(a,b) return (a-b):mag() end, --distance between
+	__concat=function(a,b) return (a-b):getMag() end, --distance between
 }})
 
 function Vec(x,y)
@@ -19,11 +19,15 @@ end
 function VecMouse() return Vec(love.mouse.getX(),love.mouse.getY()) end
 function VecSize(object) return Vec(object:getWidth(),object:getHeight()) end
 function VecWin() return VecSize(love.graphics) end
-function ConstructVec(args) return Vec(args.x,args.y) end 
+function VecPol(mag,dir) return Vec(math.cos(dir),math.sin(dir))*mag end
+function ConstructVec(args) return Vec(args.x,args.y) end
 Cardinals = {Vec(0,1),Vec(1,0),Vec(-1,0),Vec(0,-1)}
 
 function Vector:print() print('x: '..self.x..', y: '..self.y) end
 function Vector:floor() return Vec(math.floor(self.x),math.floor(self.y)) end
 function Vector:abs() return Vec(math.abs(self.x),math.abs(self.y)) end
-function Vector:mag() return math.sqrt(self.x^2+self.y^2) end
-function Vector:normalise() return self/self:mag() end
+function Vector:getMag() return math.sqrt(self.x^2+self.y^2) end
+function Vector:setMag(x) return (self/self:getMag())*x end
+function Vector:getDir() return math.atan2(self.y,self.x) end
+function Vector:setDir(x) return VecPol(self:getMag(),x) end
+function Vector:rotate(x) return self:setDir(self:getDir()+x) end

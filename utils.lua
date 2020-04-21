@@ -14,4 +14,9 @@ function utils.copy(x)
     return copy
 end
 
+function utils.round(x, dp)
+  local mult = 10^(dp or 0)
+  return math.floor(x * mult + 0.5) / mult
+end
+
 return utils
